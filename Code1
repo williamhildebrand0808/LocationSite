@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Personen-Globus HUD</title>
+  <style>
+    body { margin:0; overflow:hidden; font-family: 'Courier New', monospace; background: black; color: white; }
+    #globeViz { width: 100vw; height: 100vh; display:none; }
+    .popup {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid #0f0; 
+      padding: 15px;
+      width: 300px;
+      display: none;
+      font-size: 14px;
+      line-height: 1.4;
+      box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    .popup input, .popup textarea {
+      width: 100%;
+      margin-bottom: 8px;
+      border-radius: 3px;
+      border: 1px solid #0f0;
+      padding: 5px;
+      background: black;
+      color: #0f0;
+    }
+    .popup button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 3px;
+      background: orange;
+      color: black;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .popup h3 {
+      margin-top: 0;
+      color: orange;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="globeViz"></div>
+
+<div class="popup" id="popup">
+  <h3>SUBJECT PROFILE</h3>
+  <input id="name" placeholder="Name" />
+  <input id="ort" placeholder="Ort" />
+  <textarea id="info" placeholder="Infos"></textarea>
+  <button onclick="savePerson()">Speichern</button>
+</div>
+
+<script src="https://unpkg.com/three"></script>
+<script src="https://unpkg.com/globe.gl"></script>
+
+<script>
+const PASSWORD = "Matthew0808!";
+
+// Passwortabfrage beim Laden
+const entered = prompt("Zugriffscode eingeben:");
+if (entered !== PASSWORD) {
+  document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:50px;'>Zugriff verweigert</h1>";
+  throw new Error("Kein Zugriff");
+}
+
+// Globus sichtbar machen
+document.getElementById("globeViz").style.display = "block";
+
+// Personen-Daten aus LocalStorage
+let people = JSON.parse(localStorage.getItem('people')) || [];
+
+const globe = Globe()
+  .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+  .backgroundImageUrl('https://images.unsplash.com/photo-1541267251-68a7b7d18e8c?auto=format&fit=crop&w=1920&q=80')
+  .pointsData(people)
+  .pointLat(d => d.lat)
+  .pointLng(d => d.lng)
+  .pointColor(() => 'orange')
+  .pointRadius(0.6) // etwas größer für bessere Sichtbarkeit
+  .pointAltitude(0.02) // leicht abgehoben
+  .pointsTransitionDuration(0)
+  .pointLabel(d => `<b>${d.name}</b><br/>Ort: ${d.place}<br/>${d.info}`)
+  (document.getElementById('globeViz'));
+
+// Klick auf Globus → Popup öffnen
+globe.onGlobeClick(({ lat, lng }) => {
+  currentLat = lat;
+  currentLng = lng;
+  document.getElementById("popup").style.display = "block";
+});
+
+let currentLat, currentLng;
+
+// Steckbrief speichern + LocalStorage
+function savePerson() {
+  const name = document.getElementById("name").value;
+  const place = document.getElementById("ort").value;
+  const info = document.getElementById("info").value;
+
+  const newPerson = { lat: currentLat, lng: currentLng, name, place, info };
+  people.push(newPerson);
+
+  globe.pointsData(people); // Marker aktualisieren
+
+  localStorage.setItem('people', JSON.stringify(people)); // speichern
+
+  document.getElementById("popup").style.display = "none";
+  document.getElementById("name").value = "";
+  document.getElementById("ort").value = "";
+  document.getElementById("info").value = "";
+}
+</script>
+
+</body>
+</html>
